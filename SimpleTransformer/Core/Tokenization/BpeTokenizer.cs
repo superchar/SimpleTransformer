@@ -5,6 +5,8 @@ namespace Core.Tokenization;
 
 public class BpeTokenizer : ITokenizer
 {
+    private const int PaddingToken = 0;
+    
     private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
     private readonly Regex _wordRegex;
@@ -19,6 +21,8 @@ public class BpeTokenizer : ITokenizer
         _wordRegex = wordRegex;
     }
 
+    public int VocabSize => _mergeableRanks.Count;
+
     public static Dictionary<Bytes, int> Train(string content, int vocabSize, Regex wordRegex)
     {
         var mergeableRanks = new Dictionary<Bytes, int>();
@@ -30,7 +34,7 @@ public class BpeTokenizer : ITokenizer
         mergeableRanks[new Bytes([byte.MaxValue])] = byte.MaxValue;
 
         var words = wordRegex.Matches(content)
-            .Select(m => Encoding.UTF8.GetBytes(m.Value)
+            .Select(m => Utf8.GetBytes(m.Value)
                 .Select(b => new Bytes([b]))
                 .ToList())
             .ToList();
@@ -126,6 +130,25 @@ public class BpeTokenizer : ITokenizer
         return result
             .ToArray();
     }
+
+    public int[,] EncodeMultiple(string[] texts)
+    {
+        var tokens = texts.Select(Encode).ToList();
+        var largestInput = tokens.Max(t => t.Length);
+        var result = new int[texts.Length, largestInput];
+        for (var i = 0; i < texts.Length; i++)
+        {
+            var promptTokens = tokens[i];
+            for (var j = 0; j < largestInput; j++)
+            {
+                var token = j < promptTokens.Length ? promptTokens[j] : PaddingToken;
+                result[i, j] = token;
+            }
+        }
+
+        return result;
+    }
+
 
     public string Decode(int[] tokens)
         => tokens == null
