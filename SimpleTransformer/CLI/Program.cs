@@ -3,18 +3,25 @@ using System.Text.RegularExpressions;
 using Core.Decoder;
 using Core.Tokenization;
 
-const string tokenizerContent =
+const string trainingContent =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 const int vocabSize = 400;
 var pattern = new Regex("'s|'t|'re|'ve|'m|'ll|'d| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+\n");
-var numHeads = 2;
-var hiddenSize = 32;
-var contextSize = 20;
-var blocksCount = 2;
+const int numHeads = 2;
+const int hiddenSize = 32;
+const int contextSize = 10;
+const int blocksCount = 2;
+const int trainingIterations = 100;
+const int trainingBatchSize = 5;
 
-var mergeableRanks = BpeTokenizer.Train(tokenizerContent, vocabSize, pattern);
+var mergeableRanks = BpeTokenizer.Train(trainingContent, vocabSize, pattern);
 var tokenizer = new BpeTokenizer(mergeableRanks, pattern);
 var decoder = new TransformerDecoder(numHeads, hiddenSize, contextSize, blocksCount, tokenizer);
 string[] prompts = ["Lorem", " ipsum dolor"];
-var res = decoder.CompleteSeq(prompts, 10);
-var test = "test";
+decoder.Train(trainingContent, trainingIterations, trainingBatchSize);
+var results = decoder.CompleteSeq(prompts, 5);
+
+foreach (var result in results)
+{
+    Console.WriteLine(string.Join(',', result));
+}
