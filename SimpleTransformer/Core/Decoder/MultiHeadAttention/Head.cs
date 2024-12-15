@@ -1,16 +1,15 @@
 ﻿using TorchSharp;
+using TorchSharp.Modules;
 using static TorchSharp.torch;
-
 using static TorchSharp.torch.nn;
-using Linear = TorchSharp.Modules.Linear;
 
 namespace Core.Decoder.MultiHeadAttention;
 
 public class Head : Module<Tensor, Tensor>
 {
-    private Linear _key;
-    private Linear _query;
-    private Linear _value;
+    private readonly Linear _key;
+    private readonly Linear _query;
+    private readonly Linear _value;
     
     public Head(string name, int headSize, int hiddenSize) : base(name)
     {
@@ -25,7 +24,9 @@ public class Head : Module<Tensor, Tensor>
         var queries = _query.forward(input);
         var values = _value.forward(input);
         var wei = keys.matmul(queries.transpose(2, 1)) / Math.Sqrt(keys.shape[1]); // SDPA, Essentially kv dot product divided by sqrt of head size and softmaxed. Very inefficient in terms of GPU memory, needs seq_size ^ 2
-        wei = softmax(wei, 0);
+        var mask = tril(ones(input.shape[1], input.shape[1])).eq(0); // seq_length x seq_length
+        wei = wei.masked_fill(mask, float.NegativeInfinity);
+        wei = softmax(wei, 2);
 
         return wei.matmul(values);
     }

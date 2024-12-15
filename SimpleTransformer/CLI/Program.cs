@@ -17,3 +17,4 @@ var tokenizer = new BpeTokenizer(mergeableRanks, pattern);
 var decoder = new TransformerDecoder(numHeads, hiddenSize, contextSize, blocksCount, tokenizer);
 string[] prompts = ["Lorem", " ipsum dolor"];
 var res = decoder.CompleteSeq(prompts, 10);
+var test = "test";
