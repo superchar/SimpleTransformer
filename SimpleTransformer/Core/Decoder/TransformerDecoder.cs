@@ -41,12 +41,13 @@ public class TransformerDecoder : Module<Tensor, Tensor>, IDecoder
         var generatedTokens = 0;
         do
         {
-            var tokens = tensor(_tokenizer.EncodeMultiple(prompts));
-            var logits = forward(tokens); // batch_size x seq_length x vocab_size
+            var (tokens, paddingMask) = _tokenizer.EncodeMultiple(prompts);
+            var logits = forward(tensor(tokens)); // batch_size x seq_length x vocab_size
             var probs = softmax(logits, 2);
             for (var i = 0; i < prompts.Length; i++)
             {
-                var nextToken = multinomial(probs[i][^1], 1).ToInt32();
+                var lastRealToken = paddingMask.GetLastNonPaddedIndex(i);
+                var nextToken = multinomial(probs[i][lastRealToken], 1).ToInt32();
                 prompts[i] += _tokenizer.Decode([nextToken]);
             }
 
@@ -60,13 +61,13 @@ public class TransformerDecoder : Module<Tensor, Tensor>, IDecoder
     {
         var optimizer = optim.Adam(parameters(), lr: 0.01);
         var tokens = _tokenizer.Encode(text);
-        var (x, y) = GetBatch(tokens, batchSize);
         float lastLoss = 0;
         for (var i = 0; i < iterations; i++)
         {
+            var (x, y) = GetBatch(tokens, batchSize);
             var logits = forward(x).view(batchSize * _contextSize, _tokenizer.VocabSize);
             y = y.view(batchSize * _contextSize);
-            var loss = functional.cross_entropy(logits, y.view(batchSize * _contextSize));
+            var loss = functional.cross_entropy(logits, y);
             lastLoss = loss.item<float>();
             Console.WriteLine($"Last loss: {lastLoss}");
             optimizer.zero_grad();

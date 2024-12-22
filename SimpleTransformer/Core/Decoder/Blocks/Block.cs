@@ -23,11 +23,7 @@ public class Block : Module<Tensor, Tensor>
 
     public override Tensor forward(Tensor input)
     {
-        var res = _mhaLayerNorm.forward(_mha.forward(input)); // Normalize to 0 mean and 1 deviation
-        input += res; // residual connection 
-        res = _fnnLayerNorm.forward(_fnn.forward(input));
-        input += res;
-
-        return input;
+        var res = _mhaLayerNorm.forward(_mha.forward(input) + input); // Normalize to 0 mean and 1 deviation
+        return _fnnLayerNorm.forward(_fnn.forward(input) + res); // Applying normalization after residual connection
     }
 }

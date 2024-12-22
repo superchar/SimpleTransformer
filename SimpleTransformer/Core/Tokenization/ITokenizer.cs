@@ -6,7 +6,7 @@ public interface ITokenizer
     
     int[] Encode(string text);
 
-    int[,] EncodeMultiple(string[] texts);
+    (int[,] Tokens, PaddingMask Mask) EncodeMultiple(string[] texts);
 
     string Decode(int[] tokens);
 }

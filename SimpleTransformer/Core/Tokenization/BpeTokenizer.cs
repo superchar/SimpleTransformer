@@ -131,24 +131,32 @@ public class BpeTokenizer : ITokenizer
             .ToArray();
     }
 
-    public int[,] EncodeMultiple(string[] texts)
+    public (int[,] Tokens, PaddingMask Mask) EncodeMultiple(string[] texts)
     {
         var tokens = texts.Select(Encode).ToList();
         var largestInput = tokens.Max(t => t.Length);
         var result = new int[texts.Length, largestInput];
+        var paddingMask = new int[texts.Length, largestInput];
         for (var i = 0; i < texts.Length; i++)
         {
             var promptTokens = tokens[i];
             for (var j = 0; j < largestInput; j++)
             {
-                var token = j < promptTokens.Length ? promptTokens[j] : PaddingToken;
-                result[i, j] = token;
+                if (j < promptTokens.Length)
+                {
+                    result[i, j] = promptTokens[j];
+                    paddingMask[i, j] = 1;
+                }
+                else
+                {
+                    result[i, j] = PaddingToken;
+                    paddingMask[i, j] = 0;
+                }
             }
         }
 
-        return result;
+        return (result, new PaddingMask(paddingMask));
     }
-
 
     public string Decode(int[] tokens)
         => tokens == null

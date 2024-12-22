@@ -23,5 +23,5 @@ var results = decoder.CompleteSeq(prompts, 5);
 
 foreach (var result in results)
 {
-    Console.WriteLine(string.Join(',', result));
+    Console.WriteLine(string.Join("", result));
 }
