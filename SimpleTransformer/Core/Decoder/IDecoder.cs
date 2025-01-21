@@ -2,7 +2,7 @@
 
 public interface IDecoder
 {
-    string[] CompleteSeq(string[] prompts, int tokensCount);
+    IEnumerable<string[]> CompleteSeq(string[] prompts);
 
     float Train(string text, int iterations, int batchSize);
 }

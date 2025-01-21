@@ -1,7 +1,11 @@
-﻿namespace Core.Tokenization;
+﻿using System.Text.RegularExpressions;
+
+namespace Core.Tokenization;
 
 public interface ITokenizer
 {
+    void Train(string content, int vocabSize, Regex wordRegex);
+    
     int VocabSize { get; }
     
     int[] Encode(string text);

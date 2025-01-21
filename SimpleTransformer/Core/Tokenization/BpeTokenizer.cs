@@ -8,22 +8,14 @@ public class BpeTokenizer : ITokenizer
     private const int PaddingToken = 0;
     
     private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
-
-    private readonly Regex _wordRegex;
-    private readonly Dictionary<int, Bytes> _decoder;
-    private readonly Dictionary<Bytes, int> _mergeableRanks;
-
-    public BpeTokenizer(Dictionary<Bytes, int> mergeableRanks, Regex wordRegex)
-    {
-        _mergeableRanks = mergeableRanks;
-        _decoder = mergeableRanks
-            .ToDictionary(kv => kv.Value, kv => kv.Key);
-        _wordRegex = wordRegex;
-    }
+    
+    private Regex _wordRegex;
+    private Dictionary<int, Bytes> _decoder;
+    private Dictionary<Bytes, int> _mergeableRanks;
 
     public int VocabSize => _mergeableRanks.Count;
 
-    public static Dictionary<Bytes, int> Train(string content, int vocabSize, Regex wordRegex)
+    public void Train(string content, int vocabSize, Regex wordRegex)
     {
         var mergeableRanks = new Dictionary<Bytes, int>();
         for (byte i = 0; i < byte.MaxValue; i++)
@@ -81,7 +73,10 @@ public class BpeTokenizer : ITokenizer
             }
         }
 
-        return mergeableRanks;
+        _mergeableRanks = mergeableRanks;
+        _decoder = mergeableRanks
+            .ToDictionary(kv => kv.Value, kv => kv.Key);
+        _wordRegex = wordRegex;
     }
 
     public int[] Encode(string text)

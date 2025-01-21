@@ -18,9 +18,8 @@ public class BpeTokenizerTests
     [SetUp]
     public void Setup()
     {
-        var mergeableRanks = BpeTokenizer.Train(TrainContent, VocabSize, WordRegex);
-
-        _bpeTokenizer = new BpeTokenizer(mergeableRanks, WordRegex);
+        _bpeTokenizer = new BpeTokenizer();
+        _bpeTokenizer.Train(TrainContent, VocabSize, WordRegex);
     }
     
     [TestCase("Lorem ipsum dolor sit amet", 5)]
@@ -68,17 +67,17 @@ public class BpeTokenizerTests
     [Test]
     public void Train_VocabSizeIsBiggerThanTotalPairs_ReturnsSmallerVocabSize()
     {
-        var result = BpeTokenizer.Train(TrainContent, VocabSize, WordRegex);
+        _bpeTokenizer.Train(TrainContent, VocabSize, WordRegex);
 
-        result.Count.Should().BeLessThan(VocabSize);
+        _bpeTokenizer.VocabSize.Should().BeLessThan(VocabSize);
     }
     
     [Test]
     public void Train_VocabSizeIsSmallerThanTotalPairs_ReturnsSpecifiedVocabSize()
     {
         const int vocabSize = byte.MaxValue + 1;
-        var result = BpeTokenizer.Train(TrainContent, vocabSize, WordRegex);
+        _bpeTokenizer.Train(TrainContent, vocabSize, WordRegex);
 
-        result.Count.Should().Be(vocabSize);
+        _bpeTokenizer.VocabSize.Should().Be(vocabSize);
     }
 }

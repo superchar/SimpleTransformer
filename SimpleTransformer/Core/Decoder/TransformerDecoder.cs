@@ -36,25 +36,25 @@ public class TransformerDecoder : Module<Tensor, Tensor>, IDecoder
         RegisterComponents();
     }
     
-    public string[] CompleteSeq(string[] prompts, int tokensCount)
+    public IEnumerable<string[]> CompleteSeq(string[] prompts)
     {
-        var generatedTokens = 0;
-        do
+        while (true)
         {
-            var (tokens, paddingMask) = _tokenizer.EncodeMultiple(prompts);
+            var (tokens, paddingMask) = TrimToContextSize(_tokenizer.EncodeMultiple(prompts));
             var logits = forward(tensor(tokens)); // batch_size x seq_length x vocab_size
             var probs = softmax(logits, 2);
+            var iterationTokens = new string[prompts.Length];
             for (var i = 0; i < prompts.Length; i++)
             {
                 var lastRealToken = paddingMask.GetLastNonPaddedIndex(i);
                 var nextToken = multinomial(probs[i][lastRealToken], 1).ToInt32();
-                prompts[i] += _tokenizer.Decode([nextToken]);
+                var nextDecodedToken = _tokenizer.Decode([nextToken]);
+                iterationTokens[i] = nextDecodedToken;
+                prompts[i] += nextDecodedToken;
             }
 
-            generatedTokens++;
-        } while (generatedTokens < tokensCount);
-        
-        return prompts;
+            yield return iterationTokens;
+        }
     }
 
     public float Train(string text, int iterations, int batchSize)
@@ -84,6 +84,30 @@ public class TransformerDecoder : Module<Tensor, Tensor>, IDecoder
         var positionalEmbeddings = _positionEmbeddings.forward(arange(0, embeddings.shape[1]));
         embeddings += positionalEmbeddings;
         return _linear.forward(_blocks.forward(embeddings));
+    }
+
+    private (int[,], PaddingMask) TrimToContextSize((int[,] tokens, PaddingMask paddingMask) data)
+    {
+        var (tokens, paddingMask) = data;
+        var totalColumns = tokens.GetLength(1);
+
+        if (totalColumns <= _contextSize)
+        {
+            return (tokens, paddingMask);
+        }
+
+        var result = new int[tokens.GetLength(0), _contextSize];
+        var startColumn = totalColumns - _contextSize;
+
+        for (var i = 0; i < tokens.GetLength(0); i++)
+        {
+            for (var j = 0; j < _contextSize; j++)
+            {
+                result[i, j] = tokens[i, startColumn + j];
+            }
+        }
+
+        return (result, new PaddingMask(result));
     }
     
     private (Tensor X, Tensor Y) GetBatch(int[] data, int batchSize)
